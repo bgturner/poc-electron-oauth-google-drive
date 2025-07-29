@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const url = require('url');
 const crypto = require('crypto');
+const fetch = require('node-fetch');
 
 // Load environment variables
 require('dotenv').config();
@@ -12,6 +13,8 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const REDIRECT_PORT = process.env.REDIRECT_PORT || 3000;
 const REDIRECT_URI = `http://127.0.0.1:${REDIRECT_PORT}/callback`;
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
 
 // Validate required environment variables
 if (!GOOGLE_CLIENT_ID) {
@@ -44,8 +47,77 @@ function generateCodeChallenge(codeVerifier) {
   return codeChallenge;
 }
 
+// Store user data globally
+let currentUser = null;
+
+async function exchangeCodeForTokens(code, codeVerifier) {
+  console.log('Exchanging authorization code for tokens...');
+  
+  const tokenParams = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    code: code,
+    code_verifier: codeVerifier,
+    grant_type: 'authorization_code',
+    redirect_uri: REDIRECT_URI
+  });
+
+  try {
+    const response = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: tokenParams.toString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+    }
+
+    const tokens = await response.json();
+    console.log('✅ Tokens received successfully!');
+    console.log('Access token:', tokens.access_token ? 'present' : 'missing');
+    console.log('Refresh token:', tokens.refresh_token ? 'present' : 'missing');
+    
+    return tokens;
+  } catch (error) {
+    console.error('❌ Error exchanging code for tokens:', error);
+    throw error;
+  }
+}
+
+async function fetchUserInfo(accessToken) {
+  console.log('Fetching user information...');
+  
+  try {
+    const response = await fetch(GOOGLE_USERINFO_URL, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`User info fetch failed: ${response.status} ${response.statusText}`);
+    }
+
+    const userInfo = await response.json();
+    console.log('✅ User info received:', userInfo);
+    
+    return userInfo;
+  } catch (error) {
+    console.error('❌ Error fetching user info:', error);
+    throw error;
+  }
+}
+
 function logOut() {
   console.log('logOut() function called in main process');
+  currentUser = null;
+  
+  // Notify all windows that user logged out
+  BrowserWindow.getAllWindows().forEach(window => {
+    window.webContents.send('auth-logout');
+  });
 }
 
 function authenticate() {
@@ -88,14 +160,42 @@ function authenticate() {
         console.log('Authorization code:', code);
         console.log('Code verifier for token exchange:', codeVerifier);
         
-        // Notify all windows that authentication was successful
-        BrowserWindow.getAllWindows().forEach(window => {
-          window.webContents.send('auth-success', { code, codeVerifier });
-        });
+        // Exchange code for tokens and fetch user info
+        (async () => {
+          try {
+            const tokens = await exchangeCodeForTokens(code, codeVerifier);
+            const userInfo = await fetchUserInfo(tokens.access_token);
+            
+            // Store user data
+            currentUser = {
+              ...userInfo,
+              tokens: tokens
+            };
+            
+            // Notify all windows that authentication was successful with user data
+            BrowserWindow.getAllWindows().forEach(window => {
+              window.webContents.send('auth-success', { 
+                user: userInfo,
+                tokens: tokens 
+              });
+            });
+            
+          } catch (error) {
+            console.error('❌ Error in post-authorization flow:', error);
+            
+            // Notify windows of the error
+            BrowserWindow.getAllWindows().forEach(window => {
+              window.webContents.send('auth-error', { 
+                error: error.message 
+              });
+            });
+          }
+        })();
         
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(`
           <h1>Authentication Successful!</h1>
+          <p>Fetching your profile information...</p>
           <p>You can close this window and return to the application.</p>
           <script>window.close();</script>
         `);

@@ -42,6 +42,36 @@
       background: rgba(255, 255, 255, 0.3);
       border-color: rgba(255, 255, 255, 0.5);
     }
+    .user-info {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      max-width: 400px;
+      text-align: center;
+    }
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      display: block;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+    .user-name {
+      font-size: 1.3em;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .user-email {
+      font-size: 1em;
+      opacity: 0.8;
+      margin-bottom: 10px;
+    }
+    .auth-status {
+      font-size: 0.9em;
+      opacity: 0.7;
+    }
   </style>
 </head>
 <body>
@@ -50,11 +80,20 @@
   
   <button id="authButton" onclick="handleAuthAction()">Authorize</button>
   
+  <div id="userInfo" class="user-info" style="display: none;">
+    <img id="userAvatar" class="user-avatar" src="" alt="User Avatar">
+    <div id="userName" class="user-name"></div>
+    <div id="userEmail" class="user-email"></div>
+    <div class="auth-status">✅ Successfully authenticated</div>
+  </div>
+  
   <script>
     const { ipcRenderer } = require('electron');
     
     let isAuthorized = false;
+    let currentUser = null;
     const authButton = document.getElementById('authButton');
+    const userInfoDiv = document.getElementById('userInfo');
     
     function updateButtonState() {
       if (isAuthorized) {
@@ -62,6 +101,25 @@
       } else {
         authButton.textContent = 'Authorize';
       }
+    }
+    
+    function showUserInfo(user) {
+      document.getElementById('userName').textContent = user.name || 'Unknown User';
+      document.getElementById('userEmail').textContent = user.email || '';
+      
+      if (user.picture) {
+        document.getElementById('userAvatar').src = user.picture;
+      } else {
+        // Use a default avatar or hide the image
+        document.getElementById('userAvatar').style.display = 'none';
+      }
+      
+      userInfoDiv.style.display = 'block';
+    }
+    
+    function hideUserInfo() {
+      userInfoDiv.style.display = 'none';
+      currentUser = null;
     }
     
     async function handleAuthAction() {
@@ -86,7 +144,23 @@
     ipcRenderer.on('auth-success', (event, data) => {
       console.log('Authentication successful! Received data:', data);
       isAuthorized = true;
+      currentUser = data.user;
       updateButtonState();
+      showUserInfo(data.user);
+    });
+    
+    // Listen for authentication errors
+    ipcRenderer.on('auth-error', (event, data) => {
+      console.error('Authentication error:', data.error);
+      alert(`Authentication failed: ${data.error}`);
+    });
+    
+    // Listen for logout events
+    ipcRenderer.on('auth-logout', (event) => {
+      console.log('User logged out');
+      isAuthorized = false;
+      updateButtonState();
+      hideUserInfo();
     });
     
     // Initialize button state
