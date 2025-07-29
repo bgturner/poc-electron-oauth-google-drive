@@ -39,9 +39,17 @@ npm install
    - Click "Create Credentials" > "OAuth 2.0 Client IDs"
    - Choose "Desktop application" as the application type
    - Give it a name (e.g., "Electron OAuth App")
+   <img alt="image" src="https://github.com/user-attachments/assets/732e86dc-7f7a-43d1-9adf-eaaba80eb732" />
+   
+   ![Zight 2025-07-29 at 11 42 40 AM](https://github.com/user-attachments/assets/772a1792-adc3-47ff-bc46-26f0f9a4ea77)
+
+
 5. Configure the redirect URI:
    - No need to configure a redirect URI within the Google UI because we're using a "Desktop application" as well as a loopback device as recommended in the [Google Documentation](https://developers.google.com/identity/protocols/oauth2/native-app#installed_app_redirect_methods)
    - If you want to use a different port than the default `3000`, update the .env file
+
+   ![Zight 2025-07-29 at 11 44 52 AM](https://github.com/user-attachments/assets/11489c7a-55bf-45bc-bbea-8f700d1fbb28)
+
 6. Copy the Client ID (you'll need this for the next step)
 
 ### 3. Environment Configuration
