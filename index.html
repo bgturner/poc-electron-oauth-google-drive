@@ -48,19 +48,45 @@
   <h1>Hello Electron!</h1>
   <p>This is a minimal Electron application proof-of-concept. You can now build upon this foundation to create your desktop application.</p>
   
-  <button onclick="callAuthenticate()">Authenticate</button>
+  <button id="authButton" onclick="handleAuthAction()">Authorize</button>
   
   <script>
     const { ipcRenderer } = require('electron');
     
-    async function callAuthenticate() {
-      try {
-        const result = await ipcRenderer.invoke('authenticate');
-        console.log('Result from main process:', result);
-      } catch (error) {
-        console.error('Error calling authenticate:', error);
+    let isAuthorized = false;
+    const authButton = document.getElementById('authButton');
+    
+    function updateButtonState() {
+      if (isAuthorized) {
+        authButton.textContent = 'Log out';
+      } else {
+        authButton.textContent = 'Authorize';
       }
     }
+    
+    async function handleAuthAction() {
+      try {
+        if (isAuthorized) {
+          // Call logout
+          const result = await ipcRenderer.invoke('logout');
+          console.log('Logout result:', result);
+          isAuthorized = false;
+        } else {
+          // Call authenticate
+          const result = await ipcRenderer.invoke('authenticate');
+          console.log('Authentication result:', result);
+          // For now, assume authentication was successful
+          // In a real app, you'd wait for a success callback from the main process
+          isAuthorized = true;
+        }
+        updateButtonState();
+      } catch (error) {
+        console.error('Error during auth action:', error);
+      }
+    }
+    
+    // Initialize button state
+    updateButtonState();
     
     console.log('Electron app is running!');
   </script>

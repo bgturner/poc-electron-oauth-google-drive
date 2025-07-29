@@ -44,6 +44,10 @@ function generateCodeChallenge(codeVerifier) {
   return codeChallenge;
 }
 
+function logOut() {
+  console.log('logOut() function called in main process');
+}
+
 function authenticate() {
   console.log('authenticate() function called in main process');
   console.log('Starting Google OAuth 2.0 with PKCE flow...');
@@ -176,4 +180,9 @@ app.on('activate', () => {
 ipcMain.handle('authenticate', async () => {
   authenticate();
   return 'Authentication function called';
+});
+
+ipcMain.handle('logout', async () => {
+  logOut();
+  return 'Logout function called';
 });
