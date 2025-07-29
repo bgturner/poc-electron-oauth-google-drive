@@ -71,19 +71,23 @@
           const result = await ipcRenderer.invoke('logout');
           console.log('Logout result:', result);
           isAuthorized = false;
+          updateButtonState();
         } else {
-          // Call authenticate
+          // Call authenticate - don't change state until we get success callback
           const result = await ipcRenderer.invoke('authenticate');
           console.log('Authentication result:', result);
-          // For now, assume authentication was successful
-          // In a real app, you'd wait for a success callback from the main process
-          isAuthorized = true;
         }
-        updateButtonState();
       } catch (error) {
         console.error('Error during auth action:', error);
       }
     }
+    
+    // Listen for successful authentication from main process
+    ipcRenderer.on('auth-success', (event, data) => {
+      console.log('Authentication successful! Received data:', data);
+      isAuthorized = true;
+      updateButtonState();
+    });
     
     // Initialize button state
     updateButtonState();

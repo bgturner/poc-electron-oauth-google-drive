@@ -88,6 +88,11 @@ function authenticate() {
         console.log('Authorization code:', code);
         console.log('Code verifier for token exchange:', codeVerifier);
         
+        // Notify all windows that authentication was successful
+        BrowserWindow.getAllWindows().forEach(window => {
+          window.webContents.send('auth-success', { code, codeVerifier });
+        });
+        
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(`
           <h1>Authentication Successful!</h1>
