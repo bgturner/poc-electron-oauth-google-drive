@@ -69,8 +69,10 @@ async function exchangeCodeForTokens(code, codeVerifier) {
       body: tokenParams.toString()
     });
 
+	const json = await response.json();
+
     if (!response.ok) {
-      throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
+		throw new Error(`Token exchange failed: ${response.status} ${response.statusText}\n\tError: ${json.error}\n\tDescription: ${json.error_description}`);
     }
 
     const tokens = await response.json();
