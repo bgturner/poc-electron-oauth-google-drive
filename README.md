@@ -2,6 +2,8 @@
 
 A minimal Electron application demonstrating Google OAuth 2.0 authentication with PKCE (Proof Key for Code Exchange) flow.
 
+NOTE: This was vibe-coded with [Aider](https://aider.chat/) which means it's definitely still a PoC and had not been reviewed with an eye towards security.
+
 ## Features
 
 - Google OAuth 2.0 authentication with PKCE
@@ -12,7 +14,7 @@ A minimal Electron application demonstrating Google OAuth 2.0 authentication wit
 ## Prerequisites
 
 - Node.js (version 18 or higher - required for built-in fetch API)
-- npm or yarn
+- npm
 - A Google Cloud Platform account
 
 ## Setup Instructions
@@ -20,8 +22,8 @@ A minimal Electron application demonstrating Google OAuth 2.0 authentication wit
 ### 1. Clone and Install Dependencies
 
 ```bash
-git clone <your-repo-url>
-cd electron-app
+git clone https://github.com/bgturner/poc-electron-oauth-google-drive.git
+cd poc-electron-oauth-google-drive
 npm install
 ```
 
@@ -38,9 +40,8 @@ npm install
    - Choose "Desktop application" as the application type
    - Give it a name (e.g., "Electron OAuth App")
 5. Configure the redirect URI:
-   - In the OAuth 2.0 client configuration
-   - Add `http://127.0.0.1:3000/callback` to "Authorized redirect URIs"
-   - If you want to use a different port, update both the .env file and this redirect URI
+   - No need to configure a redirect URI within the Google UI because we're using a "Desktop application" as well as a loopback device as recommended in the [Google Documentation](https://developers.google.com/identity/protocols/oauth2/native-app#installed_app_redirect_methods)
+   - If you want to use a different port than the default `3000`, update the .env file
 6. Copy the Client ID (you'll need this for the next step)
 
 ### 3. Environment Configuration
@@ -138,7 +139,7 @@ npm run dev
 
 This implementation currently only obtains the authorization code. To complete the OAuth flow:
 
-1. Exchange the authorization code for access and refresh tokens
+1. Exchange the authorization code for access and refresh tokens. This is currently broken, with Google giving a 400 Bad Request response. The specific error description is 'client_secret is missing.'
 2. Store tokens securely
 3. Implement token refresh logic
 4. Make authenticated API calls
