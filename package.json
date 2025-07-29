@@ -3,13 +3,15 @@
   "version": "1.0.0",
   "description": "A minimal Electron application",
   "main": "main.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "electron . --enable-logging"
   },
   "dependencies": {
-    "electron": "^37.2.4",
     "dotenv": "^16.3.1",
-    "node-fetch": "^2.7.0"
+    "electron": "^37.2.4"
   }
 }

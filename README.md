@@ -11,7 +11,7 @@ A minimal Electron application demonstrating Google OAuth 2.0 authentication wit
 
 ## Prerequisites
 
-- Node.js (version 14 or higher)
+- Node.js (version 18 or higher - required for built-in fetch API)
 - npm or yarn
 - A Google Cloud Platform account
 
