@@ -1,5 +1,9 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+
+function authenticate() {
+  console.log('authenticate() function called in main process');
+}
 
 function createWindow() {
   // Create the browser window
@@ -35,4 +39,10 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// Handle IPC call from renderer process
+ipcMain.handle('authenticate', async () => {
+  authenticate();
+  return 'Authentication function called';
 });
