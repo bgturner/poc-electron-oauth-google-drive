@@ -107,16 +107,50 @@ async function fetchDriveFiles(accessToken) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Drive API request failed: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+      let errorMessage = `Drive API request failed: ${response.status} ${response.statusText}`;
+      
+      try {
+        const errorData = await response.json();
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          errorMessage = 'Access token expired or invalid. Please log out and log in again.';
+        } else if (response.status === 403) {
+          if (errorData.error?.message?.includes('rate limit')) {
+            errorMessage = 'API rate limit exceeded. Please try again later.';
+          } else {
+            errorMessage = 'Access denied. Please check your permissions.';
+          }
+        } else if (response.status >= 500) {
+          errorMessage = 'Google Drive service is temporarily unavailable. Please try again later.';
+        } else {
+          errorMessage += ` - ${errorData.error?.message || 'Unknown error'}`;
+        }
+      } catch (parseError) {
+        console.warn('Could not parse error response:', parseError);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format from Google Drive API');
+    }
+    
     console.log('✅ Drive files received:', data.files?.length || 0, 'files');
     
     return data.files || [];
   } catch (error) {
     console.error('❌ Error fetching Drive files:', error);
+    
+    // Re-throw with more context if it's a network error
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Network error: Unable to connect to Google Drive. Please check your internet connection.');
+    }
+    
     throw error;
   }
 }
@@ -331,6 +365,18 @@ ipcMain.handle('fetch-drive-files', async () => {
     return { success: true, files };
   } catch (error) {
     console.error('❌ Error in fetch-drive-files IPC handler:', error);
+    
+    // Check if it's a token expiration error
+    if (error.message.includes('Access token expired')) {
+      // Clear the current user to force re-authentication
+      currentUser = null;
+      
+      // Notify all windows that user needs to re-authenticate
+      BrowserWindow.getAllWindows().forEach(window => {
+        window.webContents.send('auth-logout');
+      });
+    }
+    
     throw error;
   }
 });
