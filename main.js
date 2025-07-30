@@ -10,6 +10,7 @@ const {
 	REDIRECT_PORT,
 	GOOGLE_AUTH_URL,
     GOOGLE_CLIENT_SECRET,
+    GOOGLE_DRIVE_FILES_URL,
 } = require('./constants.js');
 const {
 	generateCodeVerifier,
@@ -85,6 +86,37 @@ async function fetchUserInfo(accessToken) {
     return userInfo;
   } catch (error) {
     console.error('❌ Error fetching user info:', error);
+    throw error;
+  }
+}
+
+async function fetchDriveFiles(accessToken) {
+  console.log('Fetching Google Drive files...');
+  
+  try {
+    // Build query parameters for the Drive API
+    const params = new URLSearchParams({
+      pageSize: '10', // Limit to 10 files for now
+      fields: 'files(id,name,mimeType,size,modifiedTime,webViewLink)'
+    });
+    
+    const response = await fetch(`${GOOGLE_DRIVE_FILES_URL}?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Drive API request failed: ${response.status} ${response.statusText} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Drive files received:', data.files?.length || 0, 'files');
+    
+    return data.files || [];
+  } catch (error) {
+    console.error('❌ Error fetching Drive files:', error);
     throw error;
   }
 }
