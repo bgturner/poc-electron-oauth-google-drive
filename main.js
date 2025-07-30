@@ -10,36 +10,17 @@ const {
 	REDIRECT_PORT,
 	GOOGLE_AUTH_URL,
 } = require('./constants.js');
+const {
+	generateCodeVerifier,
+	generateCodeChallenge,
+	base64URLEncode,
+} = require('./helpers.js');
 
 // Validate required environment variables
 if (!GOOGLE_CLIENT_ID) {
   console.error('❌ GOOGLE_CLIENT_ID is not set in .env file');
   console.error('Please check the README.md for setup instructions');
   process.exit(1);
-}
-
-// PKCE helper functions
-function base64URLEncode(str) {
-  return str.toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-}
-
-function sha256(buffer) {
-  return crypto.createHash('sha256').update(buffer).digest();
-}
-
-function generateCodeVerifier() {
-  const codeVerifier = base64URLEncode(crypto.randomBytes(32));
-  console.log('Generated code_verifier:', codeVerifier);
-  return codeVerifier;
-}
-
-function generateCodeChallenge(codeVerifier) {
-  const codeChallenge = base64URLEncode(sha256(codeVerifier));
-  console.log('Generated code_challenge:', codeChallenge);
-  return codeChallenge;
 }
 
 // Store user data globally
