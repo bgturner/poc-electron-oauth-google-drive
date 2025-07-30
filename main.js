@@ -317,3 +317,20 @@ ipcMain.handle('logout', async () => {
   logOut();
   return 'Logout function called';
 });
+
+ipcMain.handle('fetch-drive-files', async () => {
+  console.log('fetch-drive-files IPC handler called');
+  
+  if (!currentUser || !currentUser.tokens || !currentUser.tokens.access_token) {
+    throw new Error('User not authenticated or no access token available');
+  }
+  
+  try {
+    const files = await fetchDriveFiles(currentUser.tokens.access_token);
+    console.log('✅ Successfully fetched drive files for IPC response');
+    return { success: true, files };
+  } catch (error) {
+    console.error('❌ Error in fetch-drive-files IPC handler:', error);
+    throw error;
+  }
+});
