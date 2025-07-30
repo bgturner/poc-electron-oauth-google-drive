@@ -93,7 +93,7 @@ function authorize(codeChallenge, state) {
     console.log('Starting authorization flow...');
     
     // Define OAuth scopes
-    const scopes = ['openid', 'email', 'profile'];
+    const scopes = ['openid', 'email', 'profile', 'https://www.googleapis.com/auth/drive.readonly'];
     
     // Create local server to handle the redirect
     const server = http.createServer((req, res) => {
