@@ -1,5 +1,4 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
-const path = require('path');
 const http = require('http');
 const url = require('url');
 const crypto = require('crypto');
