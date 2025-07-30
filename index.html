@@ -72,6 +72,27 @@
       font-size: 0.9em;
       opacity: 0.7;
     }
+    .drive-section {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      max-width: 600px;
+      text-align: center;
+    }
+    .drive-section h2 {
+      font-size: 1.5em;
+      margin-bottom: 15px;
+      margin-top: 0;
+    }
+    #loginMessage {
+      font-size: 1em;
+      opacity: 0.8;
+      margin: 10px 0;
+    }
+    #fetchFilesButton {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -85,6 +106,14 @@
     <div id="userName" class="user-name"></div>
     <div id="userEmail" class="user-email"></div>
     <div class="auth-status">✅ Successfully authenticated</div>
+  </div>
+  
+  <div class="drive-section">
+    <h2>Drive Files</h2>
+    <div id="driveContent">
+      <p id="loginMessage">Login to see files</p>
+      <button id="fetchFilesButton" style="display: none;">Fetch Drive Files</button>
+    </div>
   </div>
   
   <script>
@@ -115,11 +144,26 @@
       }
       
       userInfoDiv.style.display = 'block';
+      updateDriveSection();
     }
     
     function hideUserInfo() {
       userInfoDiv.style.display = 'none';
       currentUser = null;
+      updateDriveSection();
+    }
+    
+    function updateDriveSection() {
+      const loginMessage = document.getElementById('loginMessage');
+      const fetchFilesButton = document.getElementById('fetchFilesButton');
+      
+      if (isAuthorized) {
+        loginMessage.style.display = 'none';
+        fetchFilesButton.style.display = 'inline-block';
+      } else {
+        loginMessage.style.display = 'block';
+        fetchFilesButton.style.display = 'none';
+      }
     }
     
     async function handleAuthAction() {
@@ -165,6 +209,7 @@
     
     // Initialize button state
     updateButtonState();
+    updateDriveSection();
     
     console.log('Electron app is running!');
   </script>
