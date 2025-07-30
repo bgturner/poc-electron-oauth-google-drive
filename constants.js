@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 export const REDIRECT_PORT = process.env.REDIRECT_PORT || 3000;
 export const REDIRECT_URI = `http://127.0.0.1:${REDIRECT_PORT}/callback`;
 export const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';

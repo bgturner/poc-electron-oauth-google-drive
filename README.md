@@ -42,7 +42,7 @@ npm install
 5. Configure the redirect URI:
    - No need to configure a redirect URI within the Google UI because we're using a "Desktop application" as well as a loopback device as recommended in the [Google Documentation](https://developers.google.com/identity/protocols/oauth2/native-app#installed_app_redirect_methods)
    - If you want to use a different port than the default `3000`, update the .env file
-6. Copy the Client ID (you'll need this for the next step)
+6. Copy the Client ID and Secret (you'll need this for the next step)
 
 ### 3. Environment Configuration
 
@@ -51,9 +51,10 @@ npm install
    cp .env.example .env
    ```
 
-2. Edit the `.env` file and replace the placeholder with your actual Google Client ID:
+2. Edit the `.env` file and replace the placeholder with your actual Google Client ID and Secret:
    ```
    GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=your-actual-client-secret
    REDIRECT_PORT=3000
    ```
 
