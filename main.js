@@ -380,3 +380,14 @@ ipcMain.handle('fetch-drive-files', async () => {
     throw error;
   }
 });
+
+ipcMain.handle('open-external-url', async (event, url) => {
+  console.log('Opening external URL:', url);
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Error opening external URL:', error);
+    throw error;
+  }
+});

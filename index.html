@@ -263,8 +263,11 @@
           if (file.webViewLink) {
             const fileLink = document.createElement('a');
             fileLink.className = 'file-link';
-            fileLink.href = file.webViewLink;
-            fileLink.target = '_blank';
+            fileLink.href = '#';
+            fileLink.onclick = (e) => {
+              e.preventDefault();
+              openExternalUrl(file.webViewLink);
+            };
             fileLink.textContent = 'Open in Google Drive';
             fileItem.appendChild(fileLink);
           }
@@ -365,6 +368,16 @@
         // Restore button state
         fetchButton.textContent = originalText;
         fetchButton.disabled = false;
+      }
+    }
+    
+    async function openExternalUrl(url) {
+      try {
+        console.log('Opening external URL:', url);
+        await ipcRenderer.invoke('open-external-url', url);
+      } catch (error) {
+        console.error('Error opening external URL:', error);
+        alert(`Error opening link: ${error.message}`);
       }
     }
     
