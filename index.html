@@ -93,6 +93,55 @@
     #fetchFilesButton {
       margin-top: 10px;
     }
+    .files-list {
+      margin-top: 20px;
+      text-align: left;
+    }
+    .file-item {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-left: 4px solid rgba(255, 255, 255, 0.3);
+    }
+    .file-name {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .file-details {
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    .file-link {
+      color: #87CEEB;
+      text-decoration: none;
+      margin-top: 4px;
+      display: inline-block;
+    }
+    .file-link:hover {
+      text-decoration: underline;
+    }
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .error-message {
+      background: rgba(255, 0, 0, 0.2);
+      border: 1px solid rgba(255, 0, 0, 0.4);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 15px;
+      color: #ffcccc;
+    }
   </style>
 </head>
 <body>
@@ -113,6 +162,12 @@
     <div id="driveContent">
       <p id="loginMessage">Login to see files</p>
       <button id="fetchFilesButton" style="display: none;" onclick="fetchDriveFiles()">Fetch Drive Files</button>
+      <div id="filesContainer" style="display: none;">
+        <div id="filesList" class="files-list"></div>
+      </div>
+      <div id="errorContainer" style="display: none;">
+        <div id="errorMessage" class="error-message"></div>
+      </div>
     </div>
   </div>
   
@@ -156,6 +211,8 @@
     function updateDriveSection() {
       const loginMessage = document.getElementById('loginMessage');
       const fetchFilesButton = document.getElementById('fetchFilesButton');
+      const filesContainer = document.getElementById('filesContainer');
+      const errorContainer = document.getElementById('errorContainer');
       
       if (isAuthorized) {
         loginMessage.style.display = 'none';
@@ -163,7 +220,84 @@
       } else {
         loginMessage.style.display = 'block';
         fetchFilesButton.style.display = 'none';
+        filesContainer.style.display = 'none';
+        errorContainer.style.display = 'none';
       }
+    }
+    
+    function displayFiles(files) {
+      const filesContainer = document.getElementById('filesContainer');
+      const filesList = document.getElementById('filesList');
+      const errorContainer = document.getElementById('errorContainer');
+      
+      // Hide error container
+      errorContainer.style.display = 'none';
+      
+      // Clear previous files
+      filesList.innerHTML = '';
+      
+      if (files.length === 0) {
+        filesList.innerHTML = '<p>No files found in your Google Drive.</p>';
+      } else {
+        files.forEach(file => {
+          const fileItem = document.createElement('div');
+          fileItem.className = 'file-item';
+          
+          const fileName = document.createElement('div');
+          fileName.className = 'file-name';
+          fileName.textContent = file.name;
+          
+          const fileDetails = document.createElement('div');
+          fileDetails.className = 'file-details';
+          
+          const details = [];
+          if (file.mimeType) details.push(`Type: ${file.mimeType}`);
+          if (file.size) details.push(`Size: ${formatFileSize(file.size)}`);
+          if (file.modifiedTime) details.push(`Modified: ${formatDate(file.modifiedTime)}`);
+          
+          fileDetails.textContent = details.join(' • ');
+          
+          fileItem.appendChild(fileName);
+          fileItem.appendChild(fileDetails);
+          
+          if (file.webViewLink) {
+            const fileLink = document.createElement('a');
+            fileLink.className = 'file-link';
+            fileLink.href = file.webViewLink;
+            fileLink.target = '_blank';
+            fileLink.textContent = 'Open in Google Drive';
+            fileItem.appendChild(fileLink);
+          }
+          
+          filesList.appendChild(fileItem);
+        });
+      }
+      
+      filesContainer.style.display = 'block';
+    }
+    
+    function showError(message) {
+      const errorContainer = document.getElementById('errorContainer');
+      const errorMessage = document.getElementById('errorMessage');
+      const filesContainer = document.getElementById('filesContainer');
+      
+      // Hide files container
+      filesContainer.style.display = 'none';
+      
+      errorMessage.textContent = message;
+      errorContainer.style.display = 'block';
+    }
+    
+    function formatFileSize(bytes) {
+      if (!bytes) return 'Unknown size';
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(1024));
+      return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     }
     
     async function handleAuthAction() {
@@ -221,13 +355,12 @@
         
         if (result.success) {
           console.log('Drive files received:', result.files);
-          // TODO: Display files in UI (will be added in next step)
-          alert(`Successfully fetched ${result.files.length} files!`);
+          displayFiles(result.files);
         }
         
       } catch (error) {
         console.error('Error fetching drive files:', error);
-        alert(`Error fetching files: ${error.message}`);
+        showError(`Error fetching files: ${error.message}`);
       } finally {
         // Restore button state
         fetchButton.textContent = originalText;
