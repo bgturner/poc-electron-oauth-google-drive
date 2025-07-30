@@ -2,17 +2,14 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const http = require('http');
 const url = require('url');
 const crypto = require('crypto');
-
-// Load environment variables
-require('dotenv').config();
-
-// Google OAuth 2.0 configuration
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const REDIRECT_PORT = process.env.REDIRECT_PORT || 3000;
-const REDIRECT_URI = `http://127.0.0.1:${REDIRECT_PORT}/callback`;
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
+const {
+	GOOGLE_CLIENT_ID,
+	REDIRECT_URI,
+	GOOGLE_TOKEN_URL,
+	GOOGLE_USERINFO_URL,
+	REDIRECT_PORT,
+	GOOGLE_AUTH_URL,
+} = require('./constants.js');
 
 // Validate required environment variables
 if (!GOOGLE_CLIENT_ID) {
