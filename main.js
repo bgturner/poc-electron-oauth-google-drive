@@ -88,6 +88,95 @@ async function fetchUserInfo(accessToken) {
   }
 }
 
+function authorize(codeChallenge, state) {
+  return new Promise((resolve, reject) => {
+    console.log('Starting authorization flow...');
+    
+    // Create local server to handle the redirect
+    const server = http.createServer((req, res) => {
+      console.log('Received request on local server:', req.url);
+      
+      const parsedUrl = url.parse(req.url, true);
+      
+      if (parsedUrl.pathname === '/callback') {
+        const { code, state: returnedState, error } = parsedUrl.query;
+        
+        console.log('Callback received with parameters:');
+        console.log('- code:', code ? 'present' : 'missing');
+        console.log('- state:', returnedState);
+        console.log('- error:', error);
+        
+        if (error) {
+          console.error('OAuth error:', error);
+          res.writeHead(400, { 'Content-Type': 'text/html' });
+          res.end(`<h1>Authentication Error</h1><p>${error}</p>`);
+          reject(new Error(`OAuth error: ${error}`));
+        } else if (returnedState !== state) {
+          console.error('State mismatch! Expected:', state, 'Received:', returnedState);
+          res.writeHead(400, { 'Content-Type': 'text/html' });
+          res.end('<h1>Authentication Error</h1><p>State parameter mismatch</p>');
+          reject(new Error('State parameter mismatch'));
+        } else if (code) {
+          console.log('✅ Authorization code received successfully!');
+          console.log('Authorization code:', code);
+          
+          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.end(`
+            <h1>Authorization Successful!</h1>
+            <p>You can close this window and return to the application.</p>
+            <script>window.close();</script>
+          `);
+          
+          resolve(code);
+        } else {
+          console.error('No authorization code received');
+          res.writeHead(400, { 'Content-Type': 'text/html' });
+          res.end('<h1>Authentication Error</h1><p>No authorization code received</p>');
+          reject(new Error('No authorization code received'));
+        }
+        
+        // Close the server after handling the callback
+        console.log('Closing local server...');
+        server.close();
+      } else {
+        res.writeHead(404, { 'Content-Type': 'text/html' });
+        res.end('<h1>Not Found</h1>');
+      }
+    });
+    
+    // Start the server
+    server.listen(REDIRECT_PORT, '127.0.0.1', () => {
+      console.log(`Local server started on http://127.0.0.1:${REDIRECT_PORT}`);
+      
+      // Build the authorization URL
+      const authParams = new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        redirect_uri: REDIRECT_URI,
+        response_type: 'code',
+        scope: 'openid email profile',
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256',
+        state: state,
+        access_type: 'offline',
+        prompt: 'consent'
+      });
+      
+      const authUrl = `${GOOGLE_AUTH_URL}?${authParams.toString()}`;
+      console.log('Opening authorization URL in browser...');
+      console.log('Auth URL:', authUrl);
+      
+      // Open the authorization URL in the default browser
+      shell.openExternal(authUrl);
+    });
+    
+    // Handle server errors
+    server.on('error', (err) => {
+      console.error('Server error:', err);
+      reject(err);
+    });
+  });
+}
+
 function logOut() {
   console.log('logOut() function called in main process');
   currentUser = null;
@@ -98,7 +187,7 @@ function logOut() {
   });
 }
 
-function authenticate() {
+async function authenticate() {
   console.log('authenticate() function called in main process');
   console.log('Starting Google OAuth 2.0 with PKCE flow...');
   console.log('Using Client ID:', GOOGLE_CLIENT_ID.substring(0, 20) + '...');
@@ -110,117 +199,40 @@ function authenticate() {
   const state = base64URLEncode(crypto.randomBytes(16));
   
   console.log('Generated state parameter:', state);
+  console.log('Code verifier for token exchange:', codeVerifier);
   
-  // Create local server to handle the redirect
-  const server = http.createServer((req, res) => {
-    console.log('Received request on local server:', req.url);
+  try {
+    // Get authorization code
+    const code = await authorize(codeChallenge, state);
     
-    const parsedUrl = url.parse(req.url, true);
+    // Exchange code for tokens and fetch user info
+    const tokens = await exchangeCodeForTokens(code, codeVerifier);
+    const userInfo = await fetchUserInfo(tokens.access_token);
     
-    if (parsedUrl.pathname === '/callback') {
-      const { code, state: returnedState, error } = parsedUrl.query;
-      
-      console.log('Callback received with parameters:');
-      console.log('- code:', code ? 'present' : 'missing');
-      console.log('- state:', returnedState);
-      console.log('- error:', error);
-      
-      if (error) {
-        console.error('OAuth error:', error);
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end(`<h1>Authentication Error</h1><p>${error}</p>`);
-      } else if (returnedState !== state) {
-        console.error('State mismatch! Expected:', state, 'Received:', returnedState);
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end('<h1>Authentication Error</h1><p>State parameter mismatch</p>');
-      } else if (code) {
-        console.log('✅ Authorization code received successfully!');
-        console.log('Authorization code:', code);
-        console.log('Code verifier for token exchange:', codeVerifier);
-        
-        // Exchange code for tokens and fetch user info
-        (async () => {
-          try {
-            const tokens = await exchangeCodeForTokens(code, codeVerifier);
-            const userInfo = await fetchUserInfo(tokens.access_token);
-            
-            // Store user data
-            currentUser = {
-              ...userInfo,
-              tokens: tokens
-            };
-            
-            // Notify all windows that authentication was successful with user data
-            BrowserWindow.getAllWindows().forEach(window => {
-              window.webContents.send('auth-success', { 
-                user: userInfo,
-                tokens: tokens 
-              });
-            });
-            
-          } catch (error) {
-            console.error('❌ Error in post-authorization flow:', error);
-            
-            // Notify windows of the error
-            BrowserWindow.getAllWindows().forEach(window => {
-              window.webContents.send('auth-error', { 
-                error: error.message 
-              });
-            });
-          }
-        })();
-        
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`
-          <h1>Authentication Successful!</h1>
-          <p>Fetching your profile information...</p>
-          <p>You can close this window and return to the application.</p>
-          <script>window.close();</script>
-        `);
-      } else {
-        console.error('No authorization code received');
-        res.writeHead(400, { 'Content-Type': 'text/html' });
-        res.end('<h1>Authentication Error</h1><p>No authorization code received</p>');
-      }
-      
-      // Close the server after handling the callback
-      console.log('Closing local server...');
-      server.close();
-    } else {
-      res.writeHead(404, { 'Content-Type': 'text/html' });
-      res.end('<h1>Not Found</h1>');
-    }
-  });
-  
-  // Start the server
-  server.listen(REDIRECT_PORT, '127.0.0.1', () => {
-    console.log(`Local server started on http://127.0.0.1:${REDIRECT_PORT}`);
+    // Store user data
+    currentUser = {
+      ...userInfo,
+      tokens: tokens
+    };
     
-    // Build the authorization URL
-    const authParams = new URLSearchParams({
-      client_id: GOOGLE_CLIENT_ID,
-      redirect_uri: REDIRECT_URI,
-      response_type: 'code',
-      scope: 'openid email profile',
-      code_challenge: codeChallenge,
-      code_challenge_method: 'S256',
-      state: state,
-      access_type: 'offline',
-      prompt: 'consent'
+    // Notify all windows that authentication was successful with user data
+    BrowserWindow.getAllWindows().forEach(window => {
+      window.webContents.send('auth-success', { 
+        user: userInfo,
+        tokens: tokens 
+      });
     });
     
-    const authUrl = `${GOOGLE_AUTH_URL}?${authParams.toString()}`;
-    console.log('Opening authorization URL in browser...');
-    console.log('Auth URL:', authUrl);
+  } catch (error) {
+    console.error('❌ Error in authentication flow:', error);
     
-    // Open the authorization URL in the default browser
-    shell.openExternal(authUrl);
-  });
-  
-  // Handle server errors
-  server.on('error', (err) => {
-    console.error('Server error:', err);
-  });
+    // Notify windows of the error
+    BrowserWindow.getAllWindows().forEach(window => {
+      window.webContents.send('auth-error', { 
+        error: error.message 
+      });
+    });
+  }
 }
 
 function createWindow() {
