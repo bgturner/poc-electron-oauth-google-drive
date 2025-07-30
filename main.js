@@ -9,6 +9,7 @@ const {
 	GOOGLE_USERINFO_URL,
 	REDIRECT_PORT,
 	GOOGLE_AUTH_URL,
+    GOOGLE_CLIENT_SECRET,
 } = require('./constants.js');
 const {
 	generateCodeVerifier,
@@ -31,6 +32,7 @@ async function exchangeCodeForTokens(code, codeVerifier) {
   
   const tokenParams = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
+	client_secret: GOOGLE_CLIENT_SECRET,
     code: code,
     code_verifier: codeVerifier,
     grant_type: 'authorization_code',
