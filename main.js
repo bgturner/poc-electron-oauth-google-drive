@@ -92,6 +92,9 @@ function authorize(codeChallenge, state) {
   return new Promise((resolve, reject) => {
     console.log('Starting authorization flow...');
     
+    // Define OAuth scopes
+    const scopes = ['openid', 'email', 'profile'];
+    
     // Create local server to handle the redirect
     const server = http.createServer((req, res) => {
       console.log('Received request on local server:', req.url);
@@ -153,7 +156,7 @@ function authorize(codeChallenge, state) {
         client_id: GOOGLE_CLIENT_ID,
         redirect_uri: REDIRECT_URI,
         response_type: 'code',
-        scope: 'openid email profile',
+        scope: scopes.join(' '),
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         state: state,
