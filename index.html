@@ -112,7 +112,7 @@
     <h2>Drive Files</h2>
     <div id="driveContent">
       <p id="loginMessage">Login to see files</p>
-      <button id="fetchFilesButton" style="display: none;">Fetch Drive Files</button>
+      <button id="fetchFilesButton" style="display: none;" onclick="fetchDriveFiles()">Fetch Drive Files</button>
     </div>
   </div>
   
@@ -206,6 +206,34 @@
       updateButtonState();
       hideUserInfo();
     });
+    
+    async function fetchDriveFiles() {
+      const fetchButton = document.getElementById('fetchFilesButton');
+      const originalText = fetchButton.textContent;
+      
+      try {
+        // Show loading state
+        fetchButton.textContent = 'Loading...';
+        fetchButton.disabled = true;
+        
+        console.log('Fetching drive files...');
+        const result = await ipcRenderer.invoke('fetch-drive-files');
+        
+        if (result.success) {
+          console.log('Drive files received:', result.files);
+          // TODO: Display files in UI (will be added in next step)
+          alert(`Successfully fetched ${result.files.length} files!`);
+        }
+        
+      } catch (error) {
+        console.error('Error fetching drive files:', error);
+        alert(`Error fetching files: ${error.message}`);
+      } finally {
+        // Restore button state
+        fetchButton.textContent = originalText;
+        fetchButton.disabled = false;
+      }
+    }
     
     // Initialize button state
     updateButtonState();
